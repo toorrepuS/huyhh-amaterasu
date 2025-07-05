@@ -904,6 +904,76 @@
                 </div>
             </section>
 
+            <!-- ER Diagrams Section -->
+            <section id="er-diagrams" class="section">
+                <h2>📊 ER Diagrams</h2>
+
+                <h3>3.1 Fact Table Entity Relationship Diagrams</h3>
+                <p>Dưới đây là các sơ đồ ER (Entity Relationship Diagrams) cho từng fact table trong HR Data Warehouse, thể hiện mối quan hệ giữa các dimension tables và fact tables:</p>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>3.1.1 Employee Snapshot Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_employee_snapshot</strong> - Daily snapshot của trạng thái nhân viên</p>
+                        <p><em>Image: ./image/fact_employee_snapshot.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.2 Performance Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_performance</strong> - Dữ liệu đánh giá hiệu suất nhân viên</p>
+                        <p><em>Image: ./image/fact_performance.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.3 Turnover Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_turnover</strong> - Theo dõi nghỉ việc và turnover analysis</p>
+                        <p><em>Image: ./image/fact_turnover.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.4 Recruitment Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_recruitment</strong> - Tracking quy trình tuyển dụng và metrics</p>
+                        <p><em>Image: ./image/fact_recruitment.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.5 Employee Movement Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_employee_movement</strong> - Theo dõi di chuyển nhân viên và career development</p>
+                        <p><em>Image: ./image/fact_employee_movement.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.6 Channel Achievement Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_channel_achievement</strong> - Thành tích kinh doanh của các kênh phân phối</p>
+                        <p><em>Image: ./image/fact_channel_achievement.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.7 Training Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_training</strong> - Tracking đào tạo và phát triển nhân viên</p>
+                        <p><em>Image: ./image/fact_training.png</em></p>
+                    </div>
+
+                    <div class="card">
+                        <h4>3.1.8 Compensation History Fact</h4>
+                        <p><strong>Sơ đồ ER cho fact_compensation_history</strong> - Lịch sử thay đổi lương thưởng</p>
+                        <p><em>Image: ./image/fact_compensation_history.png</em></p>
+                    </div>
+                </div>
+
+                <h3>3.2 Key Relationships</h3>
+                <div class="card">
+                    <p>Các sơ đồ ER trên thể hiện:</p>
+                    <ul>
+                        <li><strong>Star Schema Design:</strong> Mỗi fact table được kết nối với các dimension tables thông qua foreign keys</li>
+                        <li><strong>Shared Dimensions:</strong> Các dimension như dim_employee, dim_date, dim_department được sử dụng chung across multiple fact tables</li>
+                        <li><strong>Hierarchical Relationships:</strong> Self-referencing relationships trong dim_employee (manager hierarchy) và dim_department (organizational structure)</li>
+                        <li><strong>Slowly Changing Dimensions:</strong> Type 2 SCD implementation với valid_from, valid_to, và is_current fields</li>
+                        <li><strong>Business Process Modeling:</strong> Mỗi fact table đại diện cho một business process cụ thể trong HR domain</li>
+                    </ul>
+                </div>
+            </section>
+
             <!-- Architecture Section -->
             <section id="architecture">
                 <h2>🏛️ Lakehouse Architecture với Medallion Model</h2>
@@ -911,6 +981,91 @@
                 <div class="architecture-diagram">
                     <h3>Architecture Overview</h3>
                     <p>Kiến trúc Lakehouse kết hợp ưu điểm của Data Lake và Data Warehouse, sử dụng Medallion Architecture để tổ chức dữ liệu theo các lớp Bronze, Silver, và Gold.</p>
+
+                    <div class="card">
+                        <h4>Architecture Overview Diagram</h4>
+                        <pre><code>graph TB
+    subgraph "Data Sources"
+        A[HRIS System]
+        B[Performance Mgmt]
+        C[Recruitment System]
+        D[Time & Attendance]
+        E[LMS]
+        F[Manual Files]
+    end
+
+    subgraph "Bronze Layer - Raw Data"
+        G[(Hadoop HDFS<br/>Parquet/JSON/CSV)]
+    end
+
+    subgraph "Silver Layer - Cleansed Data"
+        H[(Delta Lake<br/>PySpark Processing)]
+    end
+
+    subgraph "Gold Layer - Business Data"
+        I[(PostgreSQL<br/>Star Schema)]
+    end
+
+    subgraph "BI & Analytics"
+        J[Apache Superset / Metabase]
+        K[Dashboards]
+        L[Reports]
+    end
+
+    A --> G
+    B --> G
+    C --> G
+    D --> G
+    E --> G
+    F --> G
+
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    J --> L</code></pre>
+                    </div>
+
+                    <div class="card">
+                        <h4>Medallion Architecture Flow</h4>
+                        <pre><code>flowchart LR
+    subgraph "Bronze Layer"
+        B1[Raw Data<br/>Landing Zone]
+        B2[No Schema<br/>Validation]
+        B3[Exact Copy<br/>of Source]
+    end
+
+    subgraph "Silver Layer"
+        S1[Data Cleaning]
+        S2[Schema Enforcement]
+        S3[Business Rules]
+        S4[SCD Type 2]
+    end
+
+    subgraph "Gold Layer"
+        G1[Aggregations]
+        G2[Star Schema]
+        G3[Business KPIs]
+        G4[Optimized Queries]
+    end
+
+    subgraph "Consumption"
+        C1[BI Tools]
+        C2[ML Models]
+        C3[APIs]
+    end
+
+    B1 --> S1
+    B2 --> S2
+    B3 --> S3
+    S1 --> G1
+    S2 --> G2
+    S3 --> G3
+    S4 --> G4
+    G1 --> C1
+    G2 --> C2
+    G3 --> C3</code></pre>
+                    </div>
 
                     <div class="table-container">
                         <table>
@@ -951,6 +1106,39 @@
                 </div>
 
                 <h3>Data Sources</h3>
+
+                <div class="card">
+                    <h4>Data Sources Diagram</h4>
+                    <pre><code>mindmap
+  root((HR Data Sources))
+    Core Systems
+      HRIS
+        Employee Info
+        Payroll
+        Benefits
+      Performance Mgmt
+        KPIs
+        Reviews
+        Goals
+      Time & Attendance
+        Clock In/Out
+        Leave Requests
+        Overtime
+    External Systems
+      Recruitment
+        Job Postings
+        Applications
+        Interviews
+      Learning Mgmt
+        Training Records
+        Certifications
+        Skills
+    Manual Sources
+      Excel Files
+      CSV Exports
+      Survey Data</code></pre>
+                </div>
+
                 <div class="card-grid">
                     <div class="card">
                         <h4>Core Systems</h4>
@@ -1129,6 +1317,84 @@ REFRESH MATERIALIZED VIEW mv_monthly_headcount;</code></pre>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="card">
+                    <h4>Technology Stack Overview Diagram</h4>
+                    <pre><code>graph TB
+    subgraph "Data Ingestion"
+        A1[Apache Kafka]
+        A2[Apache Airflow]
+        A3[Custom APIs]
+    end
+
+    subgraph "Storage Layer"
+        B1[Hadoop HDFS]
+        B2[Delta Lake]
+        B3[PostgreSQL]
+    end
+
+    subgraph "Processing Layer"
+        C1[Apache Spark]
+        C2[PySpark]
+        C3[SQL Engines]
+    end
+
+    subgraph "Analytics Layer"
+        D1[Apache Superset]
+        D2[Jupyter Notebooks]
+        D3[REST APIs]
+    end
+
+    subgraph "Monitoring"
+        E1[Prometheus]
+        E2[Grafana]
+        E3[Data Quality Tools]
+    end
+
+    A1 --> B1
+    A2 --> B1
+    A3 --> B1
+    B1 --> C1
+    B2 --> C2
+    C1 --> B3
+    C2 --> B3
+    B3 --> D1
+    B3 --> D2
+    B3 --> D3</code></pre>
+                </div>
+
+                <h3>Data Governance and Security</h3>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>Data Quality Framework</h4>
+                        <ul>
+                            <li><strong>Validation Rules:</strong> Automated checks at each layer</li>
+                            <li><strong>Monitoring:</strong> Data quality metrics and alerting</li>
+                            <li><strong>Lineage Tracking:</strong> Data source tracking</li>
+                            <li><strong>Documentation:</strong> Metadata management</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Security Measures</h4>
+                        <ul>
+                            <li><strong>Access Control:</strong> Role-based access (RBAC)</li>
+                            <li><strong>Data Masking:</strong> PII protection in non-prod environments</li>
+                            <li><strong>Encryption:</strong> At rest and in transit</li>
+                            <li><strong>Audit Logging:</strong> Tracking data access and modifications</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Compliance</h4>
+                        <ul>
+                            <li><strong>GDPR:</strong> Right to be forgotten, data portability</li>
+                            <li><strong>Local Regulations:</strong> Compliance with local labor laws</li>
+                            <li><strong>Data Retention:</strong> Policies for data storage and deletion</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <h3>Implementation Roadmap</h3>
@@ -1326,6 +1592,484 @@ REFRESH MATERIALIZED VIEW mv_monthly_headcount;</code></pre>
                         <li><strong>Performance:</strong> Fast queries cho real-time analytics</li>
                         <li><strong>Cost-effectiveness:</strong> Optimized storage và compute costs</li>
                     </ul>
+                </div>
+            </section>
+
+            <!-- Monitoring and Maintenance Section -->
+            <section id="monitoring" class="section">
+                <h2>📊 Monitoring and Maintenance</h2>
+
+                <h3>System Monitoring</h3>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>Infrastructure Monitoring</h4>
+                        <ul>
+                            <li><strong>Cluster Health:</strong> Hadoop/Spark cluster status</li>
+                            <li><strong>Storage Utilization:</strong> HDFS capacity và growth trends</li>
+                            <li><strong>Database Performance:</strong> PostgreSQL query performance</li>
+                            <li><strong>Network Latency:</strong> Data transfer speeds</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Data Pipeline Monitoring</h4>
+                        <ul>
+                            <li><strong>ETL Job Status:</strong> Success/failure rates</li>
+                            <li><strong>Data Freshness:</strong> Last update timestamps</li>
+                            <li><strong>Processing Times:</strong> Job duration trends</li>
+                            <li><strong>Error Rates:</strong> Data quality issues</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Business Metrics Monitoring</h4>
+                        <ul>
+                            <li><strong>Data Completeness:</strong> Missing records detection</li>
+                            <li><strong>Metric Accuracy:</strong> Cross-validation with source systems</li>
+                            <li><strong>Trend Analysis:</strong> Anomaly detection in KPIs</li>
+                            <li><strong>User Activity:</strong> Dashboard usage patterns</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Data Quality Monitoring</h3>
+
+                <div class="card">
+                    <h4>Automated Quality Checks</h4>
+                    <pre><code>-- Data quality validation queries
+-- Check for duplicate employees
+SELECT employee_id, COUNT(*) as duplicate_count
+FROM dim_employee
+WHERE is_current = TRUE
+GROUP BY employee_id
+HAVING COUNT(*) > 1;
+
+-- Validate date ranges
+SELECT COUNT(*) as invalid_dates
+FROM fact_employee_snapshot
+WHERE date_key < 20200101 OR date_key > 20301231;
+
+-- Check referential integrity
+SELECT COUNT(*) as orphaned_records
+FROM fact_performance f
+LEFT JOIN dim_employee e ON f.employee_key = e.employee_key
+WHERE e.employee_key IS NULL;</code></pre>
+                </div>
+
+                <div class="card">
+                    <h4>Alert Configuration</h4>
+                    <ul>
+                        <li><strong>Critical Alerts:</strong> ETL job failures, data corruption</li>
+                        <li><strong>Warning Alerts:</strong> Data quality thresholds, performance degradation</li>
+                        <li><strong>Info Alerts:</strong> Successful job completions, data refresh notifications</li>
+                    </ul>
+                </div>
+
+                <h3>Maintenance Procedures</h3>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>Regular Maintenance Tasks</h4>
+                        <ul>
+                            <li><strong>Daily:</strong> Data quality checks, backup verification</li>
+                            <li><strong>Weekly:</strong> Performance tuning, index maintenance</li>
+                            <li><strong>Monthly:</strong> Capacity planning, security audits</li>
+                            <li><strong>Quarterly:</strong> Disaster recovery testing, system updates</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Performance Optimization</h4>
+                        <ul>
+                            <li><strong>Query Optimization:</strong> Slow query analysis và tuning</li>
+                            <li><strong>Index Management:</strong> Create/drop indexes based on usage</li>
+                            <li><strong>Partition Maintenance:</strong> Add new partitions, archive old data</li>
+                            <li><strong>Statistics Updates:</strong> Keep table statistics current</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Backup and Recovery</h4>
+                        <ul>
+                            <li><strong>Automated Backups:</strong> Daily incremental, weekly full</li>
+                            <li><strong>Cross-region Replication:</strong> Disaster recovery setup</li>
+                            <li><strong>Recovery Testing:</strong> Regular restore procedures</li>
+                            <li><strong>Data Archival:</strong> Long-term storage policies</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Operational Dashboards</h3>
+
+                <div class="card">
+                    <h4>System Health Dashboard</h4>
+                    <p>Real-time monitoring dashboard showing:</p>
+                    <ul>
+                        <li>ETL job status và execution times</li>
+                        <li>Data freshness indicators</li>
+                        <li>System resource utilization</li>
+                        <li>Error rates và data quality metrics</li>
+                        <li>User activity và query performance</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Design Rationale & Best Practices Section -->
+            <section id="design-rationale" class="section">
+                <h2>🎯 Design Rationale & Best Practices</h2>
+
+                <h3>4.1 Dimensional Modeling Principles</h3>
+
+                <h4>Star Schema Benefits</h4>
+                <div class="card">
+                    <ul>
+                        <li><strong>Query Performance:</strong> Optimized for analytical queries với minimal joins</li>
+                        <li><strong>Simplicity:</strong> Dễ hiểu cho business users và developers</li>
+                        <li><strong>Flexibility:</strong> Dễ dàng thêm metrics mới mà không ảnh hưởng existing queries</li>
+                        <li><strong>Scalability:</strong> Handle large volumes of HR data efficiently</li>
+                    </ul>
+                </div>
+
+                <h4>Slowly Changing Dimensions (SCD)</h4>
+                <div class="card">
+                    <p><strong>Type 2 SCD cho Employee, Department, Position, Compensation:</strong></p>
+                    <ul>
+                        <li>Preserve historical accuracy cho point-in-time reporting</li>
+                        <li>Track changes in employee attributes over time</li>
+                        <li>Support compliance và audit requirements</li>
+                    </ul>
+
+                    <p><strong>Example: Employee chuyển department</strong></p>
+                    <pre><code>-- Old record
+employee_key=1, employee_id='EMP001', department='IT',
+valid_from='2023-01-01', valid_to='2024-06-30', is_current=FALSE
+
+-- New record
+employee_key=2, employee_id='EMP001', department='Finance',
+valid_from='2024-07-01', valid_to='9999-12-31', is_current=TRUE</code></pre>
+                </div>
+
+                <h4>Fact Table Design Patterns</h4>
+                <div class="grid-container">
+                    <div class="card">
+                        <h5>Snapshot Facts (fact_employee_snapshot)</h5>
+                        <ul>
+                            <li>Daily snapshots cho point-in-time analysis</li>
+                            <li>Support trending và historical comparisons</li>
+                            <li>Enable cohort analysis và retention studies</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h5>Transaction Facts</h5>
+                        <p><em>fact_recruitment, fact_training, fact_compensation_history, fact_turnover, fact_employee_movement</em></p>
+                        <ul>
+                            <li>Capture business events as they occur</li>
+                            <li>Support process analysis và funnel metrics</li>
+                            <li>Enable detailed drill-down capabilities</li>
+                            <li>Track employee career progression và internal mobility</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h5>Accumulating Snapshot Facts</h5>
+                        <p><em>fact_channel_achievement, fact_performance</em></p>
+                        <ul>
+                            <li>Track business achievements over time periods</li>
+                            <li>Support target vs achievement analysis</li>
+                            <li>Enable channel performance comparison</li>
+                            <li>Support cycle time analysis</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>4.2 Data Quality Framework</h3>
+                <div class="card">
+                    <h4>Data Validation Rules</h4>
+                    <pre><code>-- Employee validation
+CHECK (hire_date <= CURRENT_DATE)
+CHECK (termination_date IS NULL OR termination_date >= hire_date)
+CHECK (age_years BETWEEN 16 AND 100)
+CHECK (employment_status IN ('Active', 'Terminated', 'On Leave'))
+
+-- Compensation validation
+CHECK (base_salary > 0)
+CHECK (total_compensation >= base_salary)
+CHECK (salary_change_percent BETWEEN -50 AND 200)
+
+-- Performance validation
+CHECK (overall_rating BETWEEN 1 AND 5)
+CHECK (review_period_end_key >= review_period_start_key)</code></pre>
+                </div>
+
+                <div class="card">
+                    <h4>Audit Trail Implementation</h4>
+                    <pre><code>-- Add to all tables
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+created_by VARCHAR(50) DEFAULT USER,
+updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+updated_by VARCHAR(50) DEFAULT USER,
+source_system VARCHAR(20) NOT NULL,
+batch_id VARCHAR(50)</code></pre>
+                </div>
+
+                <h3>4.3 Performance Optimization</h3>
+
+                <div class="card">
+                    <h4>Partitioning Strategy</h4>
+                    <pre><code>-- Fact tables partitioned by date
+PARTITION BY RANGE (date_key) (
+    PARTITION p2023 VALUES LESS THAN (20240101),
+    PARTITION p2024 VALUES LESS THAN (20250101),
+    PARTITION p2025 VALUES LESS THAN (20260101)
+);</code></pre>
+                </div>
+
+                <div class="card">
+                    <h4>Indexing Strategy</h4>
+                    <pre><code>-- Dimension tables
+CREATE INDEX idx_employee_business_key ON dim_employee(employee_id, valid_from);
+CREATE INDEX idx_employee_manager ON dim_employee(manager_employee_key);
+CREATE INDEX idx_department_hierarchy ON dim_department(parent_department_key);
+
+-- Fact tables
+CREATE INDEX idx_snapshot_date_emp ON fact_employee_snapshot(date_key, employee_key);
+CREATE INDEX idx_recruitment_dates ON fact_recruitment(posting_date_key, hire_date_key);
+CREATE INDEX idx_performance_employee ON fact_performance(employee_key, review_date_key);</code></pre>
+                </div>
+
+                <div class="card">
+                    <h4>Aggregation Tables</h4>
+                    <pre><code>-- Pre-calculated monthly summaries
+CREATE TABLE agg_monthly_headcount AS
+SELECT
+    date_key,
+    department_key,
+    location_key,
+    COUNT(*) as headcount,
+    COUNT(CASE WHEN is_new_hire THEN 1 END) as new_hires,
+    COUNT(CASE WHEN is_termination THEN 1 END) as terminations,
+    AVG(tenure_years) as avg_tenure
+FROM fact_employee_snapshot
+GROUP BY date_key, department_key, location_key;</code></pre>
+                </div>
+
+                <h3>4.4 ETL Considerations</h3>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>Data Sources Integration</h4>
+                        <ul>
+                            <li><strong>HRIS System:</strong> Employee master data, org structure</li>
+                            <li><strong>Payroll System:</strong> Compensation và benefits data</li>
+                            <li><strong>Performance System:</strong> Reviews và goal tracking</li>
+                            <li><strong>Learning Management System:</strong> Training records</li>
+                            <li><strong>Recruitment System:</strong> Hiring pipeline data</li>
+                            <li><strong>Survey Tools:</strong> Engagement và satisfaction scores</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Data Refresh Strategy</h4>
+                        <ul>
+                            <li>Daily refresh for snapshot facts</li>
+                            <li>Real-time for critical metrics (headcount)</li>
+                            <li>Weekly for performance data</li>
+                            <li>Monthly for compensation changes</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Error Handling</h4>
+                        <pre><code>-- Data quality checks before loading
+CREATE OR REPLACE PROCEDURE validate_employee_data()
+BEGIN
+    -- Check for duplicate employee_ids
+    -- Validate date ranges
+    -- Ensure referential integrity
+    -- Log data quality issues
+END;</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reporting & Analytics Framework Section -->
+            <section id="reporting-analytics" class="section">
+                <h2>📊 Reporting & Analytics Framework</h2>
+
+                <h3>5.1 Key Performance Indicators (KPIs)</h3>
+
+                <div class="grid-container">
+                    <div class="card">
+                        <h4>Executive Dashboard KPIs</h4>
+                        <ul>
+                            <li><strong>Headcount Trend:</strong> MoM growth rate</li>
+                            <li><strong>Turnover Rate:</strong> Monthly và YTD</li>
+                            <li><strong>Time to Fill:</strong> Average và by department</li>
+                            <li><strong>Employee Satisfaction:</strong> Latest survey scores</li>
+                            <li><strong>Diversity Metrics:</strong> Representation percentages</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Operational Metrics</h4>
+                        <ul>
+                            <li><strong>Recruitment Funnel:</strong> Applications → Offers → Hires</li>
+                            <li><strong>Performance Distribution:</strong> Rating percentages</li>
+                            <li><strong>Training Completion:</strong> By program và department</li>
+                            <li><strong>Compensation Equity:</strong> Pay gap analysis</li>
+                            <li><strong>Internal Mobility Trends:</strong> Movement patterns và career progression</li>
+                            <li><strong>Promotion Pipeline:</strong> Readiness và succession planning</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>5.2 Analytics Use Cases</h3>
+
+                <h4>Employee Demographics & Headcount Analysis</h4>
+                <div class="card">
+                    <h5>1.1 Headcount by Department and Time</h5>
+                    <pre><code>SELECT
+    dt.year_number,
+    dt.month_number,
+    dt.full_date,
+    d.department_name,
+    d.division,
+    COUNT(CASE WHEN f.is_active_employee = TRUE THEN 1 END) as active_headcount,
+    COUNT(CASE WHEN f.is_new_hire = TRUE THEN 1 END) as new_hires,
+    COUNT(CASE WHEN f.is_termination = TRUE THEN 1 END) as terminations
+FROM fact_employee_snapshot f
+JOIN dim_date dt ON f.date_key = dt.date_key
+JOIN dim_department d ON f.department_key = d.department_key
+WHERE dt.full_date >= '2024-01-01'
+GROUP BY dt.year_number, dt.month_number, dt.full_date, d.department_name, d.division
+ORDER BY dt.full_date DESC, d.department_name;</code></pre>
+                </div>
+
+                <div class="card">
+                    <h5>1.2 Headcount by Role/Position and Time</h5>
+                    <pre><code>SELECT
+    dt.year_number,
+    dt.month_number,
+    p.position_title,
+    p.job_family,
+    p.job_level,
+    COUNT(CASE WHEN f.is_active_employee = TRUE THEN 1 END) as headcount,
+    AVG(f.base_salary) as avg_salary,
+    AVG(f.tenure_years) as avg_tenure
+FROM fact_employee_snapshot f
+JOIN dim_date dt ON f.date_key = dt.date_key
+JOIN dim_position p ON f.position_key = p.position_key
+WHERE f.is_active_employee = TRUE
+GROUP BY dt.year_number, dt.month_number, p.position_title, p.job_family, p.job_level
+ORDER BY dt.year_number DESC, dt.month_number DESC, headcount DESC;</code></pre>
+                </div>
+
+                <div class="card">
+                    <h5>1.3 Multi-dimensional Headcount Analysis</h5>
+                    <pre><code>SELECT
+    dt.year_number,
+    dt.month_number,
+    d.department_name,
+    p.job_family,
+    p.job_level,
+    l.region,
+    COUNT(CASE WHEN f.is_active_employee = TRUE THEN 1 END) as headcount,
+    COUNT(CASE WHEN f.is_active_employee = TRUE AND e.gender = 'Female' THEN 1 END) as female_count,
+    ROUND(
+        COUNT(CASE WHEN f.is_active_employee = TRUE AND e.gender = 'Female' THEN 1 END) * 100.0 /
+        NULLIF(COUNT(CASE WHEN f.is_active_employee = TRUE THEN 1 END), 0), 2
+    ) as female_ratio_percent,
+    AVG(CASE WHEN f.is_active_employee = TRUE THEN f.age_years END) as avg_age,
+    AVG(CASE WHEN f.is_active_employee = TRUE THEN f.tenure_years END) as avg_tenure
+FROM fact_employee_snapshot f
+JOIN dim_date dt ON f.date_key = dt.date_key
+JOIN dim_employee e ON f.employee_key = e.employee_key AND e.is_current = TRUE
+JOIN dim_department d ON f.department_key = d.department_key
+JOIN dim_position p ON f.position_key = p.position_key
+JOIN dim_location l ON f.location_key = l.location_key
+GROUP BY dt.year_number, dt.month_number, d.department_name, p.job_family, p.job_level, l.region
+HAVING COUNT(CASE WHEN f.is_active_employee = TRUE THEN 1 END) > 0
+ORDER BY dt.year_number DESC, dt.month_number DESC, headcount DESC;</code></pre>
+                </div>
+
+                <h4>Recruitment Funnel Analysis</h4>
+                <div class="card">
+                    <h5>Recruitment Funnel by Position</h5>
+                    <pre><code>SELECT
+    p.position_title,
+    d.department_name,
+    COUNT(*) as total_requisitions,
+    AVG(r.cost_per_hire) as avg_cost_per_hire,
+    AVG(r.number_of_applicants) as avg_applicants,
+    AVG(r.number_of_interviews) as avg_interviews,
+    AVG(r.offers_accepted) as avg_offers,
+    ROUND(AVG(r.offers_accepted * 100.0 / NULLIF(r.number_of_offers, 0)), 2) as offer_acceptance_rate
+FROM fact_recruitment r
+JOIN dim_position p ON r.position_key = p.position_key
+JOIN dim_department d ON r.department_key = d.department_key
+GROUP BY p.position_title, d.department_name
+ORDER BY total_requisitions DESC;</code></pre>
+                </div>
+
+                <div class="card">
+                    <h5>Turnover Analysis</h5>
+                    <pre><code>SELECT
+    dt.year_number,
+    dt.month_number,
+    d.department_name,
+    d.division,
+    p.job_family,
+    p.job_level,
+    l.region,
+    COUNT(t.employee_key) as total_leavers,
+    COUNT(CASE WHEN t.termination_type = 'Voluntary' THEN 1 END) as voluntary_leavers,
+    COUNT(CASE WHEN t.termination_type = 'Involuntary' THEN 1 END) as involuntary_leavers,
+    COUNT(CASE WHEN t.regrettable_loss = TRUE THEN 1 END) as regrettable_losses,
+    AVG(t.tenure_at_termination_years) as avg_tenure_at_exit,
+    AVG(t.performance_score_last) as avg_last_performance
+FROM fact_turnover t
+JOIN dim_date dt ON t.termination_date_key = dt.date_key
+JOIN dim_department d ON t.department_key = d.department_key
+JOIN dim_position p ON t.position_key = p.position_key
+JOIN dim_location l ON t.location_key = l.location_key
+WHERE dt.year_number >= 2023
+GROUP BY dt.year_number, dt.month_number, d.department_name, d.division, p.job_family, p.job_level, l.region
+ORDER BY dt.year_number DESC, dt.month_number DESC, total_leavers DESC;</code></pre>
+                </div>
+
+                <h4>Employee Movement Analysis</h4>
+                <div class="card">
+                    <h5>Career Progression Patterns</h5>
+                    <pre><code>SELECT
+    movement_type,
+    previous_job_level,
+    new_job_level,
+    COUNT(*) as movement_count,
+    AVG(salary_change_percent) as avg_salary_increase,
+    AVG(time_in_previous_role_days) as avg_time_in_role
+FROM fact_employee_movement
+WHERE movement_date_key >= 20240101
+GROUP BY movement_type, previous_job_level, new_job_level
+ORDER BY movement_count DESC;</code></pre>
+                </div>
+
+                <div class="card">
+                    <h5>Department Mobility Matrix</h5>
+                    <pre><code>SELECT
+    pd.department_name as from_department,
+    nd.department_name as to_department,
+    COUNT(*) as transfer_count,
+    AVG(m.salary_change_percent) as avg_salary_change,
+    AVG(m.time_in_previous_role_days) as avg_time_before_transfer
+FROM fact_employee_movement m
+JOIN dim_department pd ON m.previous_department_key = pd.department_key
+JOIN dim_department nd ON m.new_department_key = nd.department_key
+WHERE m.movement_type = 'Department Transfer'
+GROUP BY pd.department_name, nd.department_name
+HAVING COUNT(*) >= 5
+ORDER BY transfer_count DESC;</code></pre>
                 </div>
             </section>
         </div>
