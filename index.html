@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Data Warehouse - Metrics & Architecture</title>
+    <style>
+        :root {
+            --primary-blue: #0038A8;
+            --secondary-blue: #02AFFF;
+            --gray: #606E7C;
+            --white: #ffffff;
+            --light-gray: #f8f9fa;
+            --border-color: #e9ecef;
+            --text-color: #606E7C;
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --table-hover: rgba(2, 175, 255, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --gray: #e0e0e0;
+            --white: #1a1a1a;
+            --light-gray: #2d2d2d;
+            --border-color: #404040;
+            --text-color: #e0e0e0;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --table-hover: rgba(2, 175, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: var(--white);
+            padding: 2rem 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 0.5rem 1rem;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        /* Navigation */
+        nav {
+            background-color: var(--card-bg);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: background-color 0.3s ease;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1rem 0;
+        }
+
+        nav li {
+            margin: 0 1rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--primary-blue);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        nav a:hover {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        /* Main Content */
+        main {
+            padding: 2rem 0;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        h2 {
+            color: var(--primary-blue);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid var(--secondary-blue);
+            padding-bottom: 0.5rem;
+        }
+
+        h3 {
+            color: var(--primary-blue);
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        h4 {
+            color: var(--gray);
+            font-size: 1.2rem;
+            margin: 1rem 0 0.5rem 0;
+        }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        th {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--light-gray);
+        }
+
+        tr:hover {
+            background-color: var(--table-hover);
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card h4 {
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+        }
+
+        /* Architecture Diagram */
+        .architecture-diagram {
+            background-color: var(--light-gray);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        /* Code blocks */
+        pre {
+            background-color: var(--light-gray);
+            border-left: 4px solid var(--secondary-blue);
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            color: var(--primary-blue);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            .theme-toggle {
+                top: 0.5rem;
+                right: 1rem;
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            nav li {
+                margin: 0.25rem 0;
+            }
+
+            section {
+                padding: 1rem;
+            }
+
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Utility classes */
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-2 {
+            margin-bottom: 2rem;
+        }
+
+        .highlight {
+            background-color: rgba(2, 175, 255, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span id="theme-icon">🌙</span>
+                <span id="theme-text">Dark Mode</span>
+            </button>
+            <h1>HR Modern Data Warehouse</h1>
+            <p>Metrics & Design Specification - Lakehouse & Medallion Architecture</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#overview">Tổng quan</a></li>
+                <li><a href="#metrics">HR Metrics</a></li>
+                <li><a href="#dimensional-model">Dimensional Model</a></li>
+                <li><a href="#architecture">Kiến trúc</a></li>
+                <li><a href="#implementation">Triển khai</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            <!-- Overview Section -->
+            <section id="overview">
+                <h2>📊 Tổng quan Hệ thống</h2>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>Lakehouse Model</h4>
+                        <p>Kết hợp ưu điểm của Data Lake (lưu trữ linh hoạt) và Data Warehouse (hiệu suất truy vấn cao), hỗ trợ dữ liệu có cấu trúc và phi cấu trúc.</p>
+                    </div>
+                    <div class="card">
+                        <h4>Medallion Architecture</h4>
+                        <p>Chia dữ liệu thành 3 lớp chính: <span class="highlight">Bronze</span> (Raw Data), <span class="highlight">Silver</span> (Cleansed Data), <span class="highlight">Gold</span> (Aggregated Data).</p>
+                    </div>
+                    <div class="card">
+                        <h4>Star Schema Design</h4>
+                        <p>Thiết kế tối ưu cho phân tích với các fact tables và dimension tables, hỗ trợ Slowly Changing Dimensions Type 2.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- HR Metrics Section -->
+            <section id="metrics">
+                <h2>📈 HR Metrics Framework</h2>
+                
+                <h3>1.1 Core Metrics</h3>
+                
+                <h4>Employee Demographics & Headcount</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Total Headcount</strong></td>
+                                <td>Tổng số nhân viên active tại thời điểm cụ thể</td>
+                                <td>Foundation metric cho mọi phân tích HR</td>
+                                <td>Daily</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Headcount by Department</strong></td>
+                                <td>Số nhân viên theo từng phòng ban</td>
+                                <td>Hiểu cấu trúc tổ chức và resource allocation</td>
+                                <td>Daily</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Manager vs IC Ratio</strong></td>
+                                <td>Tỷ lệ quản lý và nhân viên thực thi</td>
+                                <td>Đánh giá organizational structure</td>
+                                <td>Monthly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Turnover & Retention</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Overall Turnover Rate</strong></td>
+                                <td>Tỷ lệ nghỉ việc trong kỳ</td>
+                                <td>Đo stability của workforce</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Voluntary Turnover Rate</strong></td>
+                                <td>Tỷ lệ nghỉ việc tự nguyện</td>
+                                <td>Đánh giá employee satisfaction</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Average Tenure</strong></td>
+                                <td>Thời gian làm việc trung bình</td>
+                                <td>Đo loyalty và stability</td>
+                                <td>Monthly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Recruitment Metrics</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Time to Fill</strong></td>
+                                <td>Thời gian từ khi mở vị trí đến khi hire</td>
+                                <td>Đo hiệu quả quy trình tuyển dụng</td>
+                                <td>Weekly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cost per Hire</strong></td>
+                                <td>Chi phí trung bình để tuyển 1 nhân viên</td>
+                                <td>Tối ưu hóa budget tuyển dụng</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Offer Acceptance Rate</strong></td>
+                                <td>Tỷ lệ chấp nhận offer</td>
+                                <td>Competitive positioning</td>
+                                <td>Weekly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Performance & Productivity</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Performance Rating Distribution</strong></td>
+                                <td>Phân bố điểm đánh giá</td>
+                                <td>Calibration và fairness</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Goal Achievement Rate</strong></td>
+                                <td>Tỷ lệ hoàn thành mục tiêu</td>
+                                <td>Alignment với business objectives</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>360 Feedback Scores</strong></td>
+                                <td>Điểm đánh giá đa chiều</td>
+                                <td>Comprehensive performance view</td>
+                                <td>Semi-annually</td>
+                            </tr>
+                            <tr>
+                                <td><strong>High Performer Retention</strong></td>
+                                <td>Giữ chân top performers</td>
+                                <td>Protect key talent</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Employee Movements & Career Development</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Internal Promotion Rate</strong></td>
+                                <td>Tỷ lệ thăng tiến nội bộ</td>
+                                <td>Career development effectiveness</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Lateral Transfer Rate</strong></td>
+                                <td>Tỷ lệ chuyển đổi ngang</td>
+                                <td>Cross-functional development</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Promotion Velocity</strong></td>
+                                <td>Tốc độ thăng tiến</td>
+                                <td>Career progression speed</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>High Potential Movement Rate</strong></td>
+                                <td>Tỷ lệ di chuyển của nhân tài</td>
+                                <td>Talent development tracking</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Business Achievements of Distributed Channels</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Channel Sales Performance</strong></td>
+                                <td>Doanh số bán hàng theo kênh</td>
+                                <td>Track revenue by distribution channel</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Premium Achievement Rate</strong></td>
+                                <td>Tỷ lệ đạt phí bảo hiểm</td>
+                                <td>Monitor premium collection vs target</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Customer Acquisition Rate</strong></td>
+                                <td>Tỷ lệ thu hút khách hàng mới</td>
+                                <td>New customer growth by channel</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Digital Conversion Rate</strong></td>
+                                <td>Tỷ lệ chuyển đổi kênh số</td>
+                                <td>Online channel effectiveness</td>
+                                <td>Monthly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>1.2 Extended Metrics</h3>
+
+                <h4>Compensation & Benefits</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Salary vs Market Benchmark</strong></td>
+                                <td>So sánh lương với thị trường</td>
+                                <td>Competitive positioning</td>
+                                <td>Annually</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Benefits Utilization Rate</strong></td>
+                                <td>Tỷ lệ sử dụng benefits</td>
+                                <td>ROI của benefits package</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Compensation Cost per Employee</strong></td>
+                                <td>Chi phí nhân sự trung bình</td>
+                                <td>Budget planning</td>
+                                <td>Monthly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Learning & Development</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Training Hours per Employee</strong></td>
+                                <td>Giờ đào tạo trung bình</td>
+                                <td>Investment in development</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Training Completion Rate</strong></td>
+                                <td>Tỷ lệ hoàn thành đào tạo</td>
+                                <td>Engagement với learning</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Skill Gap Analysis</strong></td>
+                                <td>Phân tích khoảng cách kỹ năng</td>
+                                <td>Strategic workforce planning</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Employee Engagement & Culture</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Employee Net Promoter Score (eNPS)</strong></td>
+                                <td>Mức độ recommend công ty</td>
+                                <td>Overall satisfaction</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Engagement Survey Scores</strong></td>
+                                <td>Điểm khảo sát gắn kết</td>
+                                <td>Employee experience</td>
+                                <td>Semi-annually</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Work-Life Balance Index</strong></td>
+                                <td>Chỉ số cân bằng cuộc sống</td>
+                                <td>Wellbeing và sustainability</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Diversity & Inclusion Index</strong></td>
+                                <td>Chỉ số đa dạng và hòa nhập</td>
+                                <td>Inclusive culture</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Predictive Analytics</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Flight Risk Score</strong></td>
+                                <td>Điểm rủi ro nghỉ việc</td>
+                                <td>Proactive retention</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Performance Prediction</strong></td>
+                                <td>Dự đoán hiệu suất</td>
+                                <td>Early intervention</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Succession Planning Readiness</strong></td>
+                                <td>Sẵn sàng kế nhiệm</td>
+                                <td>Business continuity</td>
+                                <td>Quarterly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Skill Demand Forecasting</strong></td>
+                                <td>Dự báo nhu cầu kỹ năng</td>
+                                <td>Strategic hiring</td>
+                                <td>Annually</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Compliance & Risk</h4>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Metric</th>
+                                <th>Định nghĩa</th>
+                                <th>Business Logic</th>
+                                <th>Tần suất báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Training Compliance Rate</strong></td>
+                                <td>Tỷ lệ tuân thủ đào tạo bắt buộc</td>
+                                <td>Legal và regulatory compliance</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Safety Incident Rate</strong></td>
+                                <td>Tỷ lệ tai nạn lao động</td>
+                                <td>Workplace safety</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Grievance Resolution Time</strong></td>
+                                <td>Thời gian giải quyết khiếu nại</td>
+                                <td>Employee relations</td>
+                                <td>Monthly</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Audit Findings</strong></td>
+                                <td>Phát hiện kiểm toán</td>
+                                <td>Process compliance</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Dimensional Model Section -->
+            <section id="dimensional-model">
+                <h2>🏗️ Dimensional Model Design</h2>
+
+                <h3>2.1 Dimension Tables</h3>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Dimension Table</th>
+                                <th>Mục đích</th>
+                                <th>Key Fields</th>
+                                <th>Business Rules</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>dim_employee</strong></td>
+                                <td>Lưu trữ thông tin chi tiết về nhân viên với SCD Type 2</td>
+                                <td>employee_key, employee_id, full_name, hire_date, employment_status, manager_employee_key, valid_from, valid_to, is_current</td>
+                                <td>Auto-increment surrogate key, unique business key, self-referencing manager hierarchy</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_department</strong></td>
+                                <td>Cấu trúc tổ chức và hierarchy phòng ban</td>
+                                <td>department_key, department_name, division, business_unit, parent_department_key, department_level, department_head_key</td>
+                                <td>Self-referencing hierarchy, cost center mapping, active status tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_position</strong></td>
+                                <td>Thông tin vị trí công việc và job families</td>
+                                <td>position_key, position_title, job_family, job_function, job_level, job_grade, is_management_role, min_salary, max_salary</td>
+                                <td>Salary band validation, management role flag, required skills in JSON format</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_location</strong></td>
+                                <td>Thông tin địa điểm làm việc</td>
+                                <td>location_key, location_name, address, city, country, region, timezone, office_type, capacity</td>
+                                <td>Geographic hierarchy, timezone support, office capacity tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_channel</strong></td>
+                                <td>Thông tin các kênh phân phối và cấu trúc kênh</td>
+                                <td>channel_key, channel_name, channel_type, channel_category, parent_channel_key, channel_level, region, territory</td>
+                                <td>Channel hierarchy, commission structure, target customer segment</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_date</strong></td>
+                                <td>Dimension thời gian với fiscal calendar</td>
+                                <td>date_key (YYYYMMDD), full_date, day_of_week, month_number, quarter_number, year_number, fiscal_year, is_weekend, is_holiday</td>
+                                <td>Complete date attributes, fiscal calendar support, holiday tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_compensation</strong></td>
+                                <td>Cấu trúc lương thưởng và benefits</td>
+                                <td>compensation_key, salary_band, pay_grade, currency, pay_frequency, bonus_eligible, benefits_package</td>
+                                <td>Multi-currency support, eligibility flags, SCD Type 2 for changes</td>
+                            </tr>
+                            <tr>
+                                <td><strong>dim_product</strong></td>
+                                <td>Thông tin sản phẩm cho phân tích thành tích kinh doanh</td>
+                                <td>product_key, product_name, product_category, product_line, is_core_product, launch_date, commission_rate</td>
+                                <td>Product lifecycle tracking, commission rate management, market targeting</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>2.2 Fact Tables</h3>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fact Table</th>
+                                <th>Grain</th>
+                                <th>Key Measures</th>
+                                <th>Foreign Keys</th>
+                                <th>Business Rules</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>fact_employee_snapshot</strong></td>
+                                <td>Employee x Date</td>
+                                <td>base_salary, total_compensation, tenure_days, performance_score, engagement_score, headcount_flag</td>
+                                <td>employee_key, department_key, position_key, location_key, date_key, compensation_key</td>
+                                <td>Daily snapshot, semi-additive measures, point-in-time analysis support</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_performance</strong></td>
+                                <td>Employee x Performance Period</td>
+                                <td>overall_rating, goals_achievement_score, competency_score, leadership_score, 360_feedback_score</td>
+                                <td>employee_key, manager_employee_key, department_key, position_key, date_key</td>
+                                <td>Quarterly/Annual grain, normalized scores 1-5, manager hierarchy tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_turnover</strong></td>
+                                <td>Employee x Termination Event</td>
+                                <td>tenure_at_termination_days, final_salary, performance_score_last, regrettable_loss_flag, exit_interview_score</td>
+                                <td>employee_key, department_key, position_key, termination_reason_key, date_key</td>
+                                <td>Transaction grain, termination reason classification, regrettable loss tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_recruitment</strong></td>
+                                <td>Job Requisition x Date</td>
+                                <td>number_of_applicants, interviews_conducted, offers_made, time_to_fill_days, cost_per_hire, offers_accepted</td>
+                                <td>position_key, department_key, location_key, recruiter_employee_key, date_key</td>
+                                <td>Daily grain, cumulative measures, cost allocation rules, hiring funnel tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_employee_movement</strong></td>
+                                <td>Employee x Movement Event</td>
+                                <td>salary_change_amount, salary_change_percent, level_change, time_in_previous_role_days, promotion_flag</td>
+                                <td>employee_key, from_department_key, to_department_key, from_position_key, to_position_key, date_key</td>
+                                <td>Transaction grain, movement type classification, career progression tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_channel_achievement</strong></td>
+                                <td>Channel x Product x Date</td>
+                                <td>total_sales_amount, total_premium_amount, number_of_policies_sold, commission_earned, customer_acquisition_count</td>
+                                <td>channel_key, product_key, employee_key, location_key, date_key</td>
+                                <td>Daily grain, multi-currency support, commission calculation rules, target tracking</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_training</strong></td>
+                                <td>Employee x Training Course x Date</td>
+                                <td>training_hours, completion_status, assessment_score, training_cost, certification_earned_flag</td>
+                                <td>employee_key, course_key, instructor_key, location_key, date_key</td>
+                                <td>Course completion tracking, cost allocation, certification validity, skill development</td>
+                            </tr>
+                            <tr>
+                                <td><strong>fact_engagement</strong></td>
+                                <td>Employee x Survey x Date</td>
+                                <td>engagement_score, satisfaction_score, enps_score, response_rate, participation_flag</td>
+                                <td>employee_key, survey_key, department_key, manager_key, date_key</td>
+                                <td>Survey response tracking, anonymization rules, trend analysis support</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Architecture Section -->
+            <section id="architecture">
+                <h2>🏛️ Lakehouse Architecture với Medallion Model</h2>
+
+                <div class="architecture-diagram">
+                    <h3>Architecture Overview</h3>
+                    <p>Kiến trúc Lakehouse kết hợp ưu điểm của Data Lake và Data Warehouse, sử dụng Medallion Architecture để tổ chức dữ liệu theo các lớp Bronze, Silver, và Gold.</p>
+
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Layer</th>
+                                    <th>Data State</th>
+                                    <th>Technology</th>
+                                    <th>Use Cases</th>
+                                    <th>Data Quality</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>🥉 Bronze</strong></td>
+                                    <td>Raw, unprocessed data</td>
+                                    <td>Hadoop HDFS, Parquet, JSON</td>
+                                    <td>Data archival, audit trail, reprocessing</td>
+                                    <td>No validation, exact copy</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🥈 Silver</strong></td>
+                                    <td>Cleaned, standardized</td>
+                                    <td>Delta Lake, Apache Spark</td>
+                                    <td>Data integration, SCD Type 2, deduplication</td>
+                                    <td>Schema validation, data quality checks</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🥇 Gold</strong></td>
+                                    <td>Business-ready, optimized</td>
+                                    <td>PostgreSQL, Star Schema</td>
+                                    <td>Reporting, analytics, dashboards</td>
+                                    <td>Business rules validation, aggregation</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h3>Data Sources</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>Core Systems</h4>
+                        <ul>
+                            <li><strong>HRIS:</strong> Employee Info, Payroll, Benefits</li>
+                            <li><strong>Performance Mgmt:</strong> KPIs, Reviews, Goals</li>
+                            <li><strong>Time & Attendance:</strong> Clock In/Out, Leave Requests</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>External Systems</h4>
+                        <ul>
+                            <li><strong>Recruitment:</strong> Job Postings, Applications, Interviews</li>
+                            <li><strong>Learning Mgmt:</strong> Training Records, Certifications</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Manual Sources</h4>
+                        <ul>
+                            <li><strong>Excel Files:</strong> Department reports</li>
+                            <li><strong>CSV Exports:</strong> System extracts</li>
+                            <li><strong>Survey Data:</strong> Employee feedback</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Medallion Architecture Layers</h3>
+
+                <h4>🥉 Bronze Layer - Raw Data</h4>
+                <div class="card">
+                    <p><strong>Purpose:</strong> Store exact, unchanged copies of source data với complete audit trail</p>
+                    <p><strong>Technology:</strong> Hadoop HDFS, Parquet/JSON/CSV format, partitioned by date</p>
+                    <p><strong>Benefits:</strong> Audit capabilities, reprocessing, complete historical storage, disaster recovery</p>
+                    <p><strong>Data Retention:</strong> 7 years for compliance, với automated archival policies</p>
+                    <p><strong>Ingestion Patterns:</strong></p>
+                    <ul>
+                        <li><strong>Batch:</strong> Daily full extracts từ HRIS, Performance systems</li>
+                        <li><strong>Streaming:</strong> Real-time events từ time tracking, attendance</li>
+                        <li><strong>Manual:</strong> Weekly uploads của Excel reports, survey data</li>
+                    </ul>
+                    <pre><code>/bronze/
+├── hris/
+│   ├── employees/year=2024/month=01/day=15/employees_20240115.parquet
+│   ├── payroll/year=2024/month=01/day=15/payroll_20240115.json
+│   └── benefits/year=2024/month=01/day=15/benefits_20240115.csv
+├── performance/
+│   ├── reviews/year=2024/quarter=Q1/reviews_q1_2024.parquet
+│   └── goals/year=2024/month=01/goals_202401.json
+├── recruitment/
+│   ├── applications/year=2024/month=01/day=15/applications_20240115.json
+│   └── interviews/year=2024/month=01/day=15/interviews_20240115.parquet
+└── manual_files/
+    ├── surveys/year=2024/month=01/engagement_survey_202401.csv
+    └── reports/year=2024/month=01/dept_reports_202401.xlsx</code></pre>
+                </div>
+
+                <h4>🥈 Silver Layer - Cleansed Data</h4>
+                <div class="card">
+                    <p><strong>Purpose:</strong> Clean, standardize and consolidate data from Bronze layer với comprehensive data quality</p>
+                    <p><strong>Technology:</strong> Apache Spark (PySpark), Delta Lake, Great Expectations, Apache Airflow</p>
+                    <p><strong>Processing:</strong> Data quality improvement, schema standardization, SCD Type 2, deduplication</p>
+                    <p><strong>Data Quality Framework:</strong></p>
+                    <ul>
+                        <li><strong>Validation:</strong> Schema validation, data type checks, business rule validation</li>
+                        <li><strong>Cleansing:</strong> Standardization, null handling, outlier detection</li>
+                        <li><strong>Enrichment:</strong> Lookup tables, calculated fields, derived attributes</li>
+                        <li><strong>Monitoring:</strong> Data quality metrics, alerting, lineage tracking</li>
+                    </ul>
+                    <pre><code># Example PySpark cleaning và SCD Type 2
+from pyspark.sql import functions as F
+from delta.tables import DeltaTable
+
+# Data cleaning
+df_clean = df_employees \
+    .filter(F.col("employee_id").isNotNull()) \
+    .withColumn("email", F.lower(F.trim(F.col("email")))) \
+    .withColumn("phone", F.regexp_replace(F.col("phone"), "[^0-9]", "")) \
+    .dropDuplicates(["employee_id"]) \
+    .withColumn("valid_from", F.current_timestamp()) \
+    .withColumn("valid_to", F.lit(None).cast("timestamp")) \
+    .withColumn("is_current", F.lit(True))
+
+# SCD Type 2 implementation
+delta_table = DeltaTable.forPath(spark, "/silver/employees")
+delta_table.alias("target") \
+    .merge(df_clean.alias("source"), "target.employee_id = source.employee_id AND target.is_current = true") \
+    .whenMatchedUpdate(
+        condition="target.salary != source.salary OR target.department != source.department",
+        set={"is_current": "false", "valid_to": "current_timestamp()"}
+    ) \
+    .whenNotMatchedInsert(values={
+        "employee_id": "source.employee_id",
+        "salary": "source.salary",
+        "department": "source.department",
+        "valid_from": "current_timestamp()",
+        "is_current": "true"
+    }) \
+    .execute()</code></pre>
+                </div>
+
+                <h4>🥇 Gold Layer - Presentation Layer</h4>
+                <div class="card">
+                    <p><strong>Purpose:</strong> Create optimized data models for reporting and analytics với business-ready datasets</p>
+                    <p><strong>Technology:</strong> PostgreSQL, Star Schema, B-tree indexes, materialized views</p>
+                    <p><strong>Features:</strong> Pre-aggregated metrics, business-ready datasets, high-performance queries, real-time dashboards</p>
+                    <p><strong>Optimization Strategies:</strong></p>
+                    <ul>
+                        <li><strong>Indexing:</strong> B-tree indexes on foreign keys, composite indexes for common queries</li>
+                        <li><strong>Partitioning:</strong> Date-based partitioning for fact tables</li>
+                        <li><strong>Materialized Views:</strong> Pre-computed aggregations for dashboard queries</li>
+                        <li><strong>Caching:</strong> Redis caching for frequently accessed metrics</li>
+                    </ul>
+                    <p><strong>Data Models:</strong></p>
+                    <ul>
+                        <li><strong>Star Schema:</strong> Optimized for OLAP queries và business intelligence</li>
+                        <li><strong>Aggregate Tables:</strong> Monthly, quarterly summaries for fast reporting</li>
+                        <li><strong>Snapshot Tables:</strong> Point-in-time views for historical analysis</li>
+                        <li><strong>KPI Tables:</strong> Pre-calculated business metrics với trend analysis</li>
+                    </ul>
+                    <pre><code>-- Example Gold layer optimization
+CREATE MATERIALIZED VIEW mv_monthly_headcount AS
+SELECT
+    d.year_number,
+    d.month_number,
+    dept.department_name,
+    pos.job_family,
+    COUNT(DISTINCT f.employee_key) as headcount,
+    AVG(f.salary_amount) as avg_salary,
+    SUM(f.overtime_hours) as total_overtime
+FROM fact_employee_monthly f
+JOIN dim_date d ON f.date_key = d.date_key
+JOIN dim_department dept ON f.department_key = dept.department_key
+JOIN dim_position pos ON f.position_key = pos.position_key
+WHERE d.day_of_month = 1  -- Month-end snapshot
+GROUP BY d.year_number, d.month_number, dept.department_name, pos.job_family;
+
+-- Refresh strategy
+REFRESH MATERIALIZED VIEW mv_monthly_headcount;</code></pre>
+                </div>
+
+                <h3>Technology Stack</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Layer</th>
+                                <th>Technology</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Data Ingestion</td>
+                                <td>Apache Kafka, Apache Airflow, Custom APIs</td>
+                                <td>Real-time và batch data ingestion</td>
+                            </tr>
+                            <tr>
+                                <td>Storage</td>
+                                <td>Hadoop HDFS, Delta Lake, PostgreSQL</td>
+                                <td>Multi-layer storage cho different use cases</td>
+                            </tr>
+                            <tr>
+                                <td>Processing</td>
+                                <td>Apache Spark, PySpark, SQL Engines</td>
+                                <td>Data transformation và analytics</td>
+                            </tr>
+                            <tr>
+                                <td>Analytics</td>
+                                <td>Apache Superset, Jupyter Notebooks</td>
+                                <td>Business intelligence và data science</td>
+                            </tr>
+                            <tr>
+                                <td>Monitoring</td>
+                                <td>Prometheus, Grafana, Data Quality Tools</td>
+                                <td>System monitoring và data quality</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Implementation Roadmap</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Phase</th>
+                                <th>Duration</th>
+                                <th>Deliverables</th>
+                                <th>Key Activities</th>
+                                <th>Success Criteria</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Phase 1: Foundation</strong></td>
+                                <td>2-3 months</td>
+                                <td>Bronze layer, basic ingestion</td>
+                                <td>Setup Hadoop cluster, implement data ingestion pipelines, establish Bronze layer</td>
+                                <td>All source systems connected, daily data ingestion working</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 2: Data Quality</strong></td>
+                                <td>2-3 months</td>
+                                <td>Silver layer, data quality framework</td>
+                                <td>Implement Spark processing, SCD Type 2, data quality checks</td>
+                                <td>Clean, standardized data available, quality metrics established</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 3: Analytics</strong></td>
+                                <td>2-3 months</td>
+                                <td>Gold layer, star schema, basic reports</td>
+                                <td>Build dimensional model, create fact/dimension tables, basic dashboards</td>
+                                <td>Core HR metrics available, basic reporting functional</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 4: Advanced Analytics</strong></td>
+                                <td>3-4 months</td>
+                                <td>Predictive models, advanced dashboards</td>
+                                <td>Implement ML models, advanced visualizations, self-service analytics</td>
+                                <td>Predictive insights available, user adoption targets met</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phase 5: Optimization</strong></td>
+                                <td>Ongoing</td>
+                                <td>Performance tuning, scaling</td>
+                                <td>Query optimization, capacity planning, feature enhancements</td>
+                                <td>Performance SLAs met, system scalability proven</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Data Governance & Security</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>Access Control</h4>
+                        <ul>
+                            <li><strong>RBAC:</strong> Role-based access control với principle of least privilege</li>
+                            <li><strong>Data Classification:</strong> Public, Internal, Confidential, Restricted</li>
+                            <li><strong>Audit Logging:</strong> Complete access logs với retention policies</li>
+                            <li><strong>Multi-factor Authentication:</strong> Required for sensitive data access</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Data Privacy</h4>
+                        <ul>
+                            <li><strong>PII Protection:</strong> Encryption, masking, tokenization</li>
+                            <li><strong>GDPR Compliance:</strong> Right to be forgotten, data portability</li>
+                            <li><strong>Data Retention:</strong> Automated purging based on policies</li>
+                            <li><strong>Consent Management:</strong> Tracking và enforcement</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Quality Assurance</h4>
+                        <ul>
+                            <li><strong>Data Lineage:</strong> End-to-end tracking từ source to consumption</li>
+                            <li><strong>Quality Metrics:</strong> Completeness, accuracy, consistency, timeliness</li>
+                            <li><strong>Automated Testing:</strong> Unit tests, integration tests, data validation</li>
+                            <li><strong>Change Management:</strong> Version control, deployment procedures</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Implementation Section -->
+            <section id="implementation">
+                <h2>🚀 Implementation & Best Practices</h2>
+
+                <h3>Design Principles</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>Star Schema Benefits</h4>
+                        <ul>
+                            <li>Query Performance: Optimized cho analytical queries</li>
+                            <li>Simplicity: Dễ hiểu cho business users</li>
+                            <li>Flexibility: Dễ thêm metrics mới</li>
+                            <li>Scalability: Handle large volumes efficiently</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Data Quality Framework</h4>
+                        <ul>
+                            <li>Validation Rules: Automated checks at each layer</li>
+                            <li>Monitoring: Data quality metrics và alerting</li>
+                            <li>Lineage Tracking: Data source tracking</li>
+                            <li>Documentation: Metadata management</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Security & Governance</h4>
+                        <ul>
+                            <li>Access Control: Role-based access (RBAC)</li>
+                            <li>Data Masking: PII protection</li>
+                            <li>Encryption: At rest và in transit</li>
+                            <li>Compliance: GDPR, local labor laws</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Key Performance Indicators</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>KPIs</th>
+                                <th>Frequency</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Executive Dashboard</td>
+                                <td>Headcount Trend, Turnover Rate, Time to Fill, Employee Satisfaction</td>
+                                <td>Daily/Monthly</td>
+                            </tr>
+                            <tr>
+                                <td>Operational Metrics</td>
+                                <td>Recruitment Funnel, Performance Distribution, Training Completion</td>
+                                <td>Weekly/Monthly</td>
+                            </tr>
+                            <tr>
+                                <td>Strategic Analytics</td>
+                                <td>Internal Mobility, Succession Planning, Diversity Metrics</td>
+                                <td>Quarterly</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3>Implementation Roadmap</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>Phase 1: Foundation (60 days)</h4>
+                        <ul>
+                            <li>Setup Infrastructure</li>
+                            <li>Bronze Layer Setup</li>
+                            <li>Data Quality Framework</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Phase 2: Processing (90 days)</h4>
+                        <ul>
+                            <li>Silver Layer Development</li>
+                            <li>SCD Type 2 Implementation</li>
+                            <li>Airflow Orchestration</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Phase 3: Analytics (75 days)</h4>
+                        <ul>
+                            <li>Gold Layer Design</li>
+                            <li>PostgreSQL Setup</li>
+                            <li>Initial Dashboards</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Phase 4: Enhancement (75 days)</h4>
+                        <ul>
+                            <li>Advanced Analytics</li>
+                            <li>ML Models</li>
+                            <li>Self-service BI</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Benefits & Outcomes</h3>
+                <div class="card">
+                    <h4>Expected Benefits</h4>
+                    <ul>
+                        <li><strong>Scalability:</strong> Handle large volumes of HR data efficiently</li>
+                        <li><strong>Flexibility:</strong> Support multiple data types và use cases</li>
+                        <li><strong>Reliability:</strong> Robust data quality và governance</li>
+                        <li><strong>Performance:</strong> Fast queries cho real-time analytics</li>
+                        <li><strong>Cost-effectiveness:</strong> Optimized storage và compute costs</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer style="background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: var(--white); text-align: center; padding: 2rem 0; margin-top: 3rem;">
+        <div class="container">
+            <p>&copy; 2024 HR Modern Data Warehouse - Metrics & Architecture Specification</p>
+            <p>Lakehouse Architecture với Medallion Model | Bronze → Silver → Gold</p>
+            <p style="font-size: 0.9rem; opacity: 0.8; margin-top: 1rem;">
+                Comprehensive HR Analytics Framework với Dimensional Modeling và Predictive Analytics
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.removeAttribute('data-theme');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark Mode';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            const themeIcon = document.getElementById('theme-icon');
+            const themeText = document.getElementById('theme-text');
+
+            if (savedTheme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light Mode';
+            }
+        });
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add active class to navigation items
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('nav a');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <style>
+        nav a.active {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        }
+    </style>
+</body>
+</html>
